@@ -1,0 +1,18 @@
+[Unit]
+Description=ServiceBot camera and motor test UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bot
+Group=bot
+SupplementaryGroups=gpio video render
+WorkingDirectory=/home/bot/servicebot-control
+ExecStart=/usr/bin/python3 /home/bot/servicebot-control/app.py
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=3
+
+[Install]
+WantedBy=multi-user.target

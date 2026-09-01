@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ServiceBot Hardware-Test</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { max-width: 1040px; margin: auto; padding: 18px; background:#111827; color:#f8fafc; }
+    h1 { margin-bottom: 4px; }
+    .notice { color:#fbbf24; margin-top:0; }
+    .layout { display:grid; grid-template-columns:minmax(300px, 1.2fr) minmax(300px, 1fr); gap:18px; }
+    .card { background:#1f2937; border:1px solid #374151; border-radius:14px; padding:16px; }
+    img { width:100%; aspect-ratio:4/3; object-fit:cover; background:#030712; border-radius:10px; }
+    .motor-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .motor { padding:12px; border:1px solid #4b5563; border-radius:10px; }
+    .motor h3 { margin:0 0 4px; }
+    .position { color:#f8fafc; font-weight:700; margin-bottom:3px; }
+    .pins { color:#9ca3af; font-size:.82rem; margin-bottom:9px; }
+    .buttons { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .drive-pad { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:14px 0; }
+    .drive-pad button { background:#a78bfa; color:#2e1065; font-size:1rem; }
+    .drive-pad .empty { visibility:hidden; }
+    .key { display:inline-block; min-width:1.4em; padding:.12em .35em; border:1px solid #6b7280; border-radius:5px; background:#111827; color:white; }
+    button { border:0; border-radius:8px; padding:14px 8px; font-weight:700; cursor:pointer; touch-action:none; user-select:none; }
+    .forward { background:#22c55e; color:#052e16; }
+    .reverse { background:#60a5fa; color:#172554; }
+    .stop { width:100%; background:#ef4444; color:white; font-size:1.1rem; margin-top:14px; }
+    button.active { outline:4px solid white; }
+    input { width:100%; }
+    #status { color:#a7f3d0; }
+    @media(max-width:760px){ .layout{grid-template-columns:1fr}.motor-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <h1>ServiceBot Hardware-Test</h1>
+  <p class="notice">Roboter aufbocken. Ein Motor läuft nur, solange du die Taste hältst.</p>
+  <div class="layout">
+    <section class="card">
+      <h2>Kamera</h2>
+      <img src="/stream.mjpg" alt="Kamera-Livestream">
+      <p id="status">Verbinde …</p>
+    </section>
+    <section class="card">
+      <label for="speed">PWM-Leistung: <strong id="speedLabel">35%</strong></label>
+      <input id="speed" type="range" min="15" max="100" value="35">
+      <h2>Fahren</h2>
+      <div class="drive-pad" id="drivePad">
+        <button data-key="q" data-command="strafe_left"><span class="key">Q</span> Links</button>
+        <button data-key="w" data-command="forward"><span class="key">W</span> Vor</button>
+        <button data-key="e" data-command="strafe_right"><span class="key">E</span> Rechts</button>
+        <button data-key="a" data-command="turn_left"><span class="key">A</span> Drehen</button>
+        <button data-key="s" data-command="backward"><span class="key">S</span> Zurück</button>
+        <button data-key="d" data-command="turn_right">Drehen <span class="key">D</span></button>
+      </div>
+      <p class="pins">Tastatur oder Tasten gedrückt halten. Loslassen stoppt sofort.</p>
+      <h2>Einzelmotor-Test</h2>
+      <div class="motor-grid" id="motors"></div>
+      <button class="stop" id="stop">NOT-AUS / ALLE STOPPEN</button>
+    </section>
+  </div>
+  <script>
+    const pinMap = {
+      M1: {position:'Hinten links', pins:'Controller 1 / A · EN 18 · IN 23/24 · Richtung korrigiert'},
+      M2: {position:'Vorne links', pins:'Controller 1 / B · EN 12 · IN 25/16'},
+      M3: {position:'Vorne rechts', pins:'Controller 2 / A · EN 13 · IN 17/27'},
+      M4: {position:'Hinten rechts (vorläufig)', pins:'Controller 2 / B · EN 21 · IN 22/5 · Testverkabelung'}
+    };
+    const container = document.querySelector('#motors');
+    const speed = document.querySelector('#speed');
+    speed.oninput = () => document.querySelector('#speedLabel').textContent = speed.value + '%';
+
+    function post(url, body = {}) {
+      return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    }
+    function stop(motor) { return post('/api/stop', motor ? {motor} : {}); }
+    const keyCommands = {q:'strafe_left', w:'forward', e:'strafe_right', a:'turn_left', s:'backward', d:'turn_right'};
+    const heldKeys = [];
+    let driveTimer = null;
+
+    function sendDrive(command) {
+      return post('/api/drive', {command, speed:Number(speed.value)/100});
+    }
+    function refreshDrive() {
+      if (driveTimer) clearInterval(driveTimer);
+      driveTimer = null;
+      document.querySelectorAll('#drivePad button').forEach(button => button.classList.remove('active'));
+      const key = heldKeys.at(-1);
+      if (!key) { stop(); return; }
+      const command = keyCommands[key];
+      document.querySelector(`#drivePad button[data-key="${key}"]`)?.classList.add('active');
+      sendDrive(command);
+      driveTimer = setInterval(() => sendDrive(command), 300);
+    }
+    function pressKey(key) {
+      if (!(key in keyCommands) || heldKeys.includes(key)) return;
+      heldKeys.push(key);
+      refreshDrive();
+    }
+    function releaseKey(key) {
+      const index = heldKeys.indexOf(key);
+      if (index < 0) return;
+      heldKeys.splice(index, 1);
+      refreshDrive();
+    }
+    window.addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      if (key in keyCommands) { event.preventDefault(); pressKey(key); }
+    });
+    window.addEventListener('keyup', event => {
+      const key = event.key.toLowerCase();
+      if (key in keyCommands) { event.preventDefault(); releaseKey(key); }
+    });
+    document.querySelectorAll('#drivePad button').forEach(button => {
+      const key = button.dataset.key;
+      button.addEventListener('pointerdown', event => { event.preventDefault(); pressKey(key); });
+      ['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(name =>
+        button.addEventListener(name, event => { event.preventDefault(); releaseKey(key); })
+      );
+    });
+    function bindHold(button, motor, direction) {
+      let timer = null;
+      const start = (event) => {
+        event.preventDefault();
+        if (timer) return;
+        button.classList.add('active');
+        const send = () => post('/api/motor', {motor, direction, speed:Number(speed.value)/100});
+        send();
+        timer = setInterval(send, 300);
+      };
+      const end = (event) => {
+        if (event) event.preventDefault();
+        if (timer) clearInterval(timer);
+        timer = null;
+        button.classList.remove('active');
+        stop(motor);
+      };
+      button.addEventListener('pointerdown', start);
+      ['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(x => button.addEventListener(x, end));
+    }
+    for (const [motor, info] of Object.entries(pinMap)) {
+      const box = document.createElement('div');
+      box.className = 'motor';
+      box.innerHTML = `<h3>${motor}</h3><div class="position">${info.position}</div><div class="pins">${info.pins}</div><div class="buttons"><button class="forward">Vorwärts</button><button class="reverse">Rückwärts</button></div>`;
+      bindHold(box.querySelector('.forward'), motor, 'forward');
+      bindHold(box.querySelector('.reverse'), motor, 'reverse');
+      container.appendChild(box);
+    }
+    document.querySelector('#stop').onclick = () => stop();
+    window.addEventListener('blur', () => {
+      heldKeys.splice(0);
+      if (driveTimer) clearInterval(driveTimer);
+      driveTimer = null;
+      stop();
+    });
+    window.addEventListener('pagehide', () => navigator.sendBeacon('/api/stop', new Blob(['{}'], {type:'application/json'})));
+    fetch('/api/status').then(r => r.json()).then(s => {
+      document.querySelector('#status').textContent = s.camera === 'ok' ? 'Kamera verbunden · 640×480 · 20 fps' : `Kamerafehler: ${s.camera}`;
+    }).catch(e => document.querySelector('#status').textContent = 'Server nicht erreichbar: ' + e);
+  </script>
+</body>
+</html>
