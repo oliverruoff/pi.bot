@@ -6,6 +6,7 @@ BRANCH="${BRANCH:-main}"
 SERVICE_NAME="${SERVICE_NAME:-servicebot-control}"
 SERVICE_USER="${SERVICE_USER:-$(id -un)}"
 NODE_VERSION="${NODE_VERSION:-22.19.0}"
+PI_VERSION="${PI_VERSION:-0.84.4}"
 NODE_DIR="/opt/node-v${NODE_VERSION}-linux-arm64"
 
 log() { printf '\n[%s] %s\n' "$(date '+%H:%M:%S')" "$*"; }
@@ -45,7 +46,7 @@ fi
 
 if ! command -v pi >/dev/null 2>&1; then
   log "Installing Pi Coding Agent"
-  sudo env PATH=/usr/local/bin:/usr/bin:/bin /usr/local/bin/npm install -g @earendil-works/pi-coding-agent@latest
+  sudo env PATH=/usr/local/bin:/usr/bin:/bin /usr/local/bin/npm install -g "@earendil-works/pi-coding-agent@$PI_VERSION"
   if [ -x "$NODE_DIR/bin/pi" ]; then sudo ln -sfn "$NODE_DIR/bin/pi" /usr/local/bin/pi; fi
 fi
 

@@ -69,13 +69,15 @@ cd ~/Navibot
 ./deploy.sh
 ```
 
-The script updates the selected Git branch, installs Node 22.19 ARM64 and the current Pi Coding Agent when needed, adapts the systemd unit to the current checkout/user, enables the service, restarts it, and checks `/api/status`.
+The script updates the selected Git branch, installs pinned Node 22.19 and Pi Coding Agent 0.84.4 versions when needed, adapts the systemd unit to the current checkout/user, enables the service, restarts it, and checks `/api/status`.
 
 Supported overrides include:
 
 ```bash
 APP_DIR=/home/bot/Navibot BRANCH=main SERVICE_USER=bot ./deploy.sh
 ```
+
+`NODE_VERSION` and `PI_VERSION` can deliberately override the pinned runtime versions after compatibility testing.
 
 ### 4. Verify safely
 
@@ -115,4 +117,3 @@ python3 -m py_compile webserver/app.py webserver/agent_bridge.py
 ```
 
 To roll back, check out a known Git revision and rerun `./deploy.sh`. The prior `/home/bot/servicebot-control` installation is not modified or deleted by this repository.
-
