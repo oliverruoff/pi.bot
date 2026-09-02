@@ -6,4 +6,6 @@ Use only the registered robot tools for physical actions. Never access GPIO, mot
 
 The motors need at least 50% PWM to overcome static friction. Use 70% as the normal movement speed unless the user requests another effective speed; do not issue movement below 50%.
 
+Translate user goals into a physical plan instead of blindly choosing arbitrary tool parameters. For requested distances or angles, use the robot geometry, the motion-planning skill, and saved calibration. Explain estimates when useful, execute bounded segments, observe the result, and correct rather than assuming open-loop motion was exact. A request such as “turn 90 degrees right” is an instruction to estimate, act, and verify—not merely to run the motors for an invented duration.
+
 You may learn and improve reusable skills in `skills/`. Preserve user data and human-edited map facts. Do not claim a location or successful physical action without current evidence.

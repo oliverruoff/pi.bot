@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 
 const base = process.env.HARDWARE_BASE_URL || "http://127.0.0.1:8080";
-const maxSpeed = Number(process.env.ROBOT_MAX_SPEED || "0.55");
+const maxSpeed = Number(process.env.ROBOT_MAX_SPEED || "0.85");
 const defaultSpeed = Number(process.env.ROBOT_DEFAULT_SPEED || "0.70");
 const maxDuration = Number(process.env.ROBOT_MAX_DURATION || "5");
 
@@ -19,7 +19,7 @@ async function post(path: string, body: object, signal?: AbortSignal) {
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "move", label: "Move robot",
-    description: "Move the Mecanum robot using a bounded vector for a finite duration. Positive forward is ahead, positive turn is right, and positive strafe is right.",
+    description: "Move the 30x30 cm Mecanum robot using a bounded vector for a finite duration. Wheels are 6 cm diameter. Positive forward is ahead, positive turn is right, and positive strafe is right. Plan requested angles/distances with the motion-planning skill and calibration; verify camera-visible results.",
     parameters: Type.Object({
       forward: Type.Number({ minimum: -1, maximum: 1 }),
       turn: Type.Number({ minimum: -1, maximum: 1 }),
@@ -35,7 +35,7 @@ export default function (pi: ExtensionAPI) {
           const timer = setTimeout(resolve, Math.min(300, Math.max(0, deadline - Date.now())));
           signal?.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("move aborted")); }, { once: true });
         }); } while (Date.now() < deadline);
-        return { content: [{ type: "text", text: "Bounded movement completed and robot stopped." }] };
+        return { content: [{ type: "text", text: `Bounded movement completed and robot stopped (vector ${params.forward}/${params.turn}/${params.strafe}, speed ${body.speed}, requested duration ${params.duration}s).` }] };
       } finally { try { await post("/api/stop", {}); } catch {} }
     },
   });
