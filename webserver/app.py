@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Navibot hardware owner, camera streamer, and web/agent gateway."""
+"""pi.bot hardware owner, camera streamer, and web/agent gateway."""
 from __future__ import annotations
 import io, json, os, signal, sys, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -7,8 +7,8 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from agent_bridge import ChatManager
 
-HOST=os.getenv("NAVIBOT_HOST","0.0.0.0"); PORT=int(os.getenv("NAVIBOT_PORT","8080")); DEADMAN_SECONDS=float(os.getenv("NAVIBOT_DEADMAN_SECONDS","0.8"))
-WEB_ROOT=Path(__file__).with_name("static"); PROJECT_ROOT=Path(__file__).resolve().parent.parent; MOCK=os.getenv("NAVIBOT_MOCK_HARDWARE")=="1"
+HOST=os.getenv("PI_BOT_HOST","0.0.0.0"); PORT=int(os.getenv("PI_BOT_PORT","8080")); DEADMAN_SECONDS=float(os.getenv("PI_BOT_DEADMAN_SECONDS","0.8"))
+WEB_ROOT=Path(__file__).with_name("static"); PROJECT_ROOT=Path(__file__).resolve().parent.parent; MOCK=os.getenv("PI_BOT_MOCK_HARDWARE")=="1"
 shutdown_event=threading.Event(); process_started_at=time.monotonic(); motor_lock=threading.Lock()
 
 class MockPin:
@@ -72,7 +72,7 @@ def start_camera():
 
 chat=None
 class Handler(BaseHTTPRequestHandler):
-    server_version="Navibot/2.0"
+    server_version="pi.bot/2.0"
     def log_message(self,fmt,*args): print(f"{self.address_string()} - {fmt%args}",flush=True)
     def send_json(self,status,payload):
         body=json.dumps(payload,ensure_ascii=False).encode(); self.send_response(status); self.send_header("Content-Type","application/json; charset=utf-8"); self.send_header("Content-Length",str(len(body))); self.send_header("Cache-Control","no-store"); self.end_headers(); self.wfile.write(body)
@@ -140,10 +140,10 @@ def watchdog():
 def shutdown(*_args): shutdown_event.set(); stop_all()
 if __name__=="__main__":
     signal.signal(signal.SIGTERM,shutdown); signal.signal(signal.SIGINT,shutdown); threading.Thread(target=watchdog,daemon=True).start(); start_camera()
-    if os.getenv("NAVIBOT_DISABLE_AGENT")!="1":
+    if os.getenv("PI_BOT_DISABLE_AGENT")!="1":
         try: chat=ChatManager(PROJECT_ROOT)
         except Exception as exc: print(f"Agent unavailable: {exc}",file=sys.stderr)
-    server=ThreadingHTTPServer((HOST,PORT),Handler); server.timeout=.5; print(f"Navibot listening on http://{HOST}:{PORT}",flush=True)
+    server=ThreadingHTTPServer((HOST,PORT),Handler); server.timeout=.5; print(f"pi.bot listening on http://{HOST}:{PORT}",flush=True)
     try:
         while not shutdown_event.is_set(): server.handle_request()
     finally:

@@ -1,6 +1,6 @@
 ---
 name: navigation
-description: Localize and navigate Navibot in a known home using current camera observations and the human-editable text map. Use for destinations, room localization, route planning, and guided map creation; not for precise SLAM or guaranteed obstacle avoidance.
+description: Localize and navigate pi.bot in a known home using current camera observations and the human-editable text map. Use for destinations, room localization, route planning, and guided map creation; not for precise SLAM or guaranteed obstacle avoidance.
 ---
 
 # Semantic navigation

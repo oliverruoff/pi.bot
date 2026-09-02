@@ -59,7 +59,7 @@ trap 'rm -rf "$service_tmp" "${tmp_dir:-}"' EXIT
 sed \
   -e "s|^User=.*|User=$SERVICE_USER|" \
   -e "s|^Group=.*|Group=$SERVICE_USER|" \
-  -e "s|/home/bot/Navibot|$APP_DIR|g" \
+  -e "s|/home/bot/pi.bot|$APP_DIR|g" \
   webserver/servicebot-control.service > "$service_tmp"
 
 log "Installing and restarting $SERVICE_NAME"
@@ -69,7 +69,7 @@ sudo systemctl enable "$SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME"
 health_ok=false
 for _attempt in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:8080/api/status > /tmp/navibot-deploy-status.json 2>/dev/null; then
+  if curl -fsS http://127.0.0.1:8080/api/status > /tmp/pi-bot-deploy-status.json 2>/dev/null; then
     health_ok=true
     break
   fi
@@ -77,10 +77,10 @@ for _attempt in $(seq 1 30); do
 done
 if [ "$health_ok" != true ]; then
   sudo journalctl -u "$SERVICE_NAME" --no-pager -n 80
-  fail "Navibot did not become healthy within 60 seconds"
+  fail "pi.bot did not become healthy within 60 seconds"
 fi
 sudo systemctl --no-pager --full status "$SERVICE_NAME"
-cat /tmp/navibot-deploy-status.json
-rm -f /tmp/navibot-deploy-status.json
+cat /tmp/pi-bot-deploy-status.json
+rm -f /tmp/pi-bot-deploy-status.json
 printf '\n'
 log "Deployment complete"

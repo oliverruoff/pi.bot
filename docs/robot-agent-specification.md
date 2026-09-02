@@ -21,7 +21,7 @@ The system should be easy to understand, operate, and modify. It should support 
 
 ## 3. Existing Hardware Service
 
-The existing Navibot web service is the sole owner of GPIO, motor drivers, and camera access. It already provides:
+The existing pi.bot web service is the sole owner of GPIO, motor drivers, and camera access. It already provides:
 
 - Four-motor Mecanum drive, including forward/reverse, rotation, strafing, and vector mixing.
 - A motor safety watchdog that stops motion when commands are no longer refreshed.
