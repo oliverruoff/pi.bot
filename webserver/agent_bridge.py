@@ -64,7 +64,9 @@ class PiProcess:
             self.proc.kill()
         self.proc = None
 
-    def command(self, payload: dict[str, Any], timeout: float = 120) -> dict[str, Any]:
+    def command(self, payload: dict[str, Any], timeout: float | None = None) -> dict[str, Any]:
+        if timeout is None:
+            timeout = float(os.getenv("PI_PROMPT_TIMEOUT", "600")) if payload.get("type") == "prompt" else 120.0
         self.start()
         is_prompt = payload.get("type") == "prompt"
         if is_prompt:

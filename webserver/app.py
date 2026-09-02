@@ -94,15 +94,15 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError,json.JSONDecodeError): return self.send_json(400,{"ok":False,"error":"invalid JSON"})
         try:
             if self.path=="/api/drive":
-                command=str(data.get("command","")); speed=max(.1,min(float(data.get("speed",.35)),1.))
+                command=str(data.get("command","")); speed=max(.1,min(float(data.get("speed",.70)),1.))
                 if command not in DRIVE_COMMANDS: raise ValueError("unknown drive command")
                 manual_priority_until=time.monotonic()+DEADMAN_SECONDS; apply_drive(DRIVE_COMMANDS[command],speed,"manual",command); return self.send_json(200,{"ok":True})
             if self.path=="/api/vector":
-                f,t,s=[max(-1.,min(float(data.get(k,0)),1.)) for k in ("forward","turn","strafe")]; speed=max(.1,min(float(data.get("speed",.35)),1.)); manual_priority_until=time.monotonic()+DEADMAN_SECONDS; apply_drive({"M2":f+t+s,"M3":f-t-s,"M1":f+t-s,"M4":f-t+s},speed,"manual","vector"); return self.send_json(200,{"ok":True})
+                f,t,s=[max(-1.,min(float(data.get(k,0)),1.)) for k in ("forward","turn","strafe")]; speed=max(.1,min(float(data.get("speed",.70)),1.)); manual_priority_until=time.monotonic()+DEADMAN_SECONDS; apply_drive({"M2":f+t+s,"M3":f-t-s,"M1":f+t-s,"M4":f-t+s},speed,"manual","vector"); return self.send_json(200,{"ok":True})
             if self.path=="/api/agent/vector":
                 if self.client_address[0] not in ("127.0.0.1","::1"): return self.send_json(403,{"ok":False,"error":"local access only"})
                 if time.monotonic()<manual_priority_until: return self.send_json(409,{"ok":False,"error":"manual control has priority"})
-                f,t,s=[max(-1.,min(float(data.get(k,0)),1.)) for k in ("forward","turn","strafe")]; speed=max(.1,min(float(data.get("speed",.25)),1.)); apply_drive({"M2":f+t+s,"M3":f-t-s,"M1":f+t-s,"M4":f-t+s},speed,"agent","vector"); return self.send_json(200,{"ok":True})
+                f,t,s=[max(-1.,min(float(data.get(k,0)),1.)) for k in ("forward","turn","strafe")]; speed=max(.5,min(float(data.get("speed",.70)),1.)); apply_drive({"M2":f+t+s,"M3":f-t-s,"M1":f+t-s,"M4":f-t+s},speed,"agent","vector"); return self.send_json(200,{"ok":True})
             if self.path=="/api/stop": stop_all(); return self.send_json(200,{"ok":True})
             if self.path=="/api/chat":
                 if not chat: raise RuntimeError("agent disabled")

@@ -3,6 +3,7 @@ import { Type } from "typebox";
 
 const base = process.env.HARDWARE_BASE_URL || "http://127.0.0.1:8080";
 const maxSpeed = Number(process.env.ROBOT_MAX_SPEED || "0.55");
+const defaultSpeed = Number(process.env.ROBOT_DEFAULT_SPEED || "0.70");
 const maxDuration = Number(process.env.ROBOT_MAX_DURATION || "5");
 
 async function json(path: string, init?: RequestInit) {
@@ -23,11 +24,11 @@ export default function (pi: ExtensionAPI) {
       forward: Type.Number({ minimum: -1, maximum: 1 }),
       turn: Type.Number({ minimum: -1, maximum: 1 }),
       strafe: Type.Number({ minimum: -1, maximum: 1 }),
-      speed: Type.Number({ minimum: 0.1, maximum: maxSpeed }),
+      speed: Type.Optional(Type.Number({ minimum: 0.5, maximum: maxSpeed, description: "PWM power; defaults to 70%. Values below 50% cannot move this robot." })),
       duration: Type.Number({ minimum: 0.1, maximum: maxDuration }),
     }),
     async execute(_id, params, signal) {
-      const body = { forward: params.forward, turn: params.turn, strafe: params.strafe, speed: Math.min(params.speed, maxSpeed) };
+      const body = { forward: params.forward, turn: params.turn, strafe: params.strafe, speed: Math.min(params.speed ?? defaultSpeed, maxSpeed) };
       const deadline = Date.now() + Math.min(params.duration, maxDuration) * 1000;
       try {
         do { await post("/api/agent/vector", body, signal); await new Promise((resolve, reject) => {
