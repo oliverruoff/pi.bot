@@ -9,8 +9,9 @@ User=bot
 Group=bot
 SupplementaryGroups=gpio video render
 WorkingDirectory=/home/bot/servicebot-control
+ExecStartPre=/bin/sleep 5
 ExecStart=/usr/bin/python3 /home/bot/servicebot-control/app.py
-Restart=on-failure
+Restart=always
 RestartSec=2
 TimeoutStopSec=3
 

@@ -13,6 +13,8 @@ from gpiozero import DigitalOutputDevice, PWMOutputDevice
 HOST = "0.0.0.0"
 PORT = 8080
 DEADMAN_SECONDS = 0.8
+CAMERA_START_GRACE_SECONDS = 8.0
+CAMERA_STALL_SECONDS = 5.0
 WEB_ROOT = Path(__file__).with_name("static")
 
 
@@ -60,6 +62,7 @@ motors = {
 deadlines = {name: 0.0 for name in motors}
 motor_lock = threading.Lock()
 shutdown_event = threading.Event()
+process_started_at = time.monotonic()
 
 DRIVE_COMMANDS = {
     # Logical wheel directions after applying each motor's reversed flag.
@@ -102,16 +105,36 @@ def watchdog():
                 if deadline and now > deadline:
                     motors[name].stop()
                     deadlines[name] = 0.0
+        camera_age = now - process_started_at
+        no_camera_start = camera_age > CAMERA_START_GRACE_SECONDS and camera_output.frame_count < 2
+        stalled_camera = (
+            camera_output.last_frame_at > 0
+            and now - camera_output.last_frame_at > CAMERA_STALL_SECONDS
+        )
+        if camera_error or no_camera_start or stalled_camera:
+            reason = camera_error or (
+                f"only {camera_output.frame_count} frame(s) after {camera_age:.1f}s"
+                if no_camera_start
+                else f"no new frame for {now - camera_output.last_frame_at:.1f}s"
+            )
+            print(f"Camera watchdog restarting service: {reason}", flush=True)
+            stop_all()
+            shutdown_event.set()
+            break
 
 
 class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
         self.frame = None
+        self.frame_count = 0
+        self.last_frame_at = 0.0
         self.condition = threading.Condition()
 
     def write(self, buf):
         with self.condition:
             self.frame = bytes(buf)
+            self.frame_count += 1
+            self.last_frame_at = time.monotonic()
             self.condition.notify_all()
         return len(buf)
 
@@ -164,6 +187,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {
                 "ok": True,
                 "camera": camera_error or "ok",
+                "camera_frames": camera_output.frame_count,
                 "motors": MOTOR_PINS,
             })
         elif path == "/stream.mjpg":
