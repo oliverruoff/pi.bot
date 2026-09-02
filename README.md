@@ -1,6 +1,6 @@
-# Navibot
+# pi.bot
 
-Navibot is a phone-controlled Raspberry Pi home robot with four Mecanum wheels, a Picamera2 live stream, persistent web chat, Pi Coding Agent integration, bounded robot tools, and a text-map navigation skill.
+pi.bot is a phone-controlled Raspberry Pi home robot with four Mecanum wheels, a Picamera2 live stream, persistent web chat, Pi Coding Agent integration, bounded robot tools, and a text-map navigation skill.
 
 ## Architecture
 
@@ -47,8 +47,8 @@ Log out and back in after changing groups.
 ### 2. Clone and configure
 
 ```bash
-git clone https://github.com/oliverruoff/Navibot.git ~/Navibot
-cd ~/Navibot
+git clone https://github.com/oliverruoff/pi.bot.git ~/pi.bot
+cd ~/pi.bot
 cp .env.example .env
 chmod 600 .env
 ```
@@ -65,7 +65,7 @@ The default configuration allows 10 minutes for one agent turn and uses 70% moto
 ### 3. Deploy
 
 ```bash
-cd ~/Navibot
+cd ~/pi.bot
 ./deploy.sh
 ```
 
@@ -74,7 +74,7 @@ The script updates the selected Git branch, installs pinned Node 22.19 and Pi Co
 Supported overrides include:
 
 ```bash
-APP_DIR=/home/bot/Navibot BRANCH=main SERVICE_USER=bot ./deploy.sh
+APP_DIR=/home/bot/pi.bot BRANCH=main SERVICE_USER=bot ./deploy.sh
 ```
 
 `NODE_VERSION` and `PI_VERSION` can deliberately override the pinned runtime versions after compatibility testing.
@@ -86,7 +86,7 @@ First perform checks that cannot move the robot:
 ```bash
 systemctl is-active servicebot-control
 curl -fsS http://127.0.0.1:8080/api/status
-curl -fsS http://127.0.0.1:8080/api/snapshot -o /tmp/navibot-snapshot.jpg
+curl -fsS http://127.0.0.1:8080/api/snapshot -o /tmp/pi-bot-snapshot.jpg
 ```
 
 Open `http://ROBOT_IP:8080`, verify the camera, and send a chat prompt that explicitly forbids movement. Confirm `get_robot_status` and `take_photo` before testing `move`.
@@ -106,7 +106,7 @@ The final drive status must report `active: false`. Also verify forward, backwar
 
 ## Navigation map
 
-The checked-in map is intentionally empty because room facts are installation-specific. Ask Navibot to help map the home, then review the generated Markdown under `skills/navigation/map/`. Commit map files only if the user wants the home layout versioned; treat potentially sensitive household details accordingly.
+The checked-in map is intentionally empty because room facts are installation-specific. Ask pi.bot to help map the home, then review the generated Markdown under `skills/navigation/map/`. Commit map files only if the user wants the home layout versioned; treat potentially sensitive household details accordingly.
 
 ## Development checks
 

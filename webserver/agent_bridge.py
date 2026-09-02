@@ -116,7 +116,7 @@ class ChatManager:
 
     def __init__(self, project_root: Path):
         self.root = project_root
-        self.data_dir = Path(os.getenv("NAVIBOT_DATA_DIR", project_root / "data")).resolve()
+        self.data_dir = Path(os.getenv("PI_BOT_DATA_DIR", project_root / "data")).resolve()
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.history_file = self.data_dir / "chat-history.json"
         self.archive_dir = self.data_dir / "chat-archive"
@@ -127,7 +127,7 @@ class ChatManager:
         self.revision = 0
         self.condition = threading.Condition()
         self.work: queue.Queue[str | None] = queue.Queue()
-        skills = Path(os.getenv("NAVIBOT_SKILLS_DIR", project_root / "skills")).resolve()
+        skills = Path(os.getenv("PI_BOT_SKILLS_DIR", project_root / "skills")).resolve()
         self.pi = PiProcess(project_root, skills, self._on_event)
         threading.Thread(target=self._worker, daemon=True).start()
 

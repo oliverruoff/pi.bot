@@ -1,6 +1,6 @@
 ---
 name: motion-planning
-description: Convert requested robot turns, distances, directions, and gestures into reasoned bounded Mecanum move calls using Navibot geometry, empirical calibration, and camera verification. Use whenever a user requests physical movement, including approximate angles or distances.
+description: Convert requested robot turns, distances, directions, and gestures into reasoned bounded Mecanum move calls using pi.bot geometry, empirical calibration, and camera verification. Use whenever a user requests physical movement, including approximate angles or distances.
 ---
 
 # Motion planning

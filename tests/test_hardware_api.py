@@ -21,7 +21,7 @@ def request(path, body=None):
 
 
 def test_mock_hardware_endpoints_and_watchdog():
-    env = {**os.environ, "NAVIBOT_MOCK_HARDWARE": "1", "NAVIBOT_DISABLE_AGENT": "1", "NAVIBOT_PORT": "18080"}
+    env = {**os.environ, "PI_BOT_MOCK_HARDWARE": "1", "PI_BOT_DISABLE_AGENT": "1", "PI_BOT_PORT": "18080"}
     process = subprocess.Popen([sys.executable, str(ROOT / "webserver" / "app.py")], env=env)
     try:
         for _ in range(30):
