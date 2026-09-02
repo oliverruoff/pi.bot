@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ServiceBot Hardware-Test</title>
+  <title>ServiceBot Steuerung</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; }
     body { max-width: 1040px; margin: auto; padding: 18px; background:#111827; color:#f8fafc; }
@@ -21,6 +21,17 @@
     .drive-pad { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:14px 0; }
     .drive-pad button { background:#a78bfa; color:#2e1065; font-size:1rem; }
     .drive-pad .empty { visibility:hidden; }
+    .joystick-wrap { display:flex; justify-content:center; margin:12px 0; }
+    .joystick { position:relative; width:190px; height:190px; border-radius:50%; background:radial-gradient(circle, #374151 0 16%, #111827 17% 48%, #374151 49% 51%, #111827 52%); border:2px solid #6b7280; touch-action:none; user-select:none; }
+    .joystick::before, .joystick::after { content:""; position:absolute; background:#4b5563; pointer-events:none; }
+    .joystick::before { width:2px; height:82%; left:calc(50% - 1px); top:9%; }
+    .joystick::after { height:2px; width:82%; top:calc(50% - 1px); left:9%; }
+    .joystick-knob { position:absolute; width:70px; height:70px; left:60px; top:60px; border-radius:50%; background:#22c55e; box-shadow:0 5px 18px #0008; pointer-events:none; transform:translate(0,0); }
+    .joystick-label { text-align:center; color:#d1d5db; min-height:1.4em; margin:4px 0 10px; }
+    .strafe-buttons { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .strafe-buttons button { background:#f59e0b; color:#451a03; font-size:1rem; padding:17px 8px; }
+    details { margin-top:16px; }
+    summary { cursor:pointer; font-weight:700; padding:8px 0; }
     .key { display:inline-block; min-width:1.4em; padding:.12em .35em; border:1px solid #6b7280; border-radius:5px; background:#111827; color:white; }
     button { border:0; border-radius:8px; padding:14px 8px; font-weight:700; cursor:pointer; touch-action:none; user-select:none; }
     .forward { background:#22c55e; color:#052e16; }
@@ -29,22 +40,38 @@
     button.active { outline:4px solid white; }
     input { width:100%; }
     #status { color:#a7f3d0; }
-    @media(max-width:760px){ .layout{grid-template-columns:1fr}.motor-grid{grid-template-columns:1fr} }
+    @media(max-width:760px){
+      body{padding:8px} h1{font-size:1.35rem;margin-top:4px}.notice{font-size:.82rem}
+      .layout{grid-template-columns:1fr;gap:8px}.card{padding:10px}.camera-title{display:none}
+      img{max-height:42vh}.motor-grid{grid-template-columns:1fr}.drive-pad{display:none}
+      #status{font-size:.78rem;margin:5px 0 0}.desktop-only{display:none}
+    }
   </style>
 </head>
 <body>
-  <h1>ServiceBot Hardware-Test</h1>
-  <p class="notice">Roboter aufbocken. Ein Motor läuft nur, solange du die Taste hältst.</p>
+  <h1>ServiceBot Steuerung</h1>
+  <p class="notice">Joystick oder Taste loslassen stoppt den Roboter sofort.</p>
   <div class="layout">
     <section class="card">
-      <h2>Kamera</h2>
+      <h2 class="camera-title">Kamera</h2>
       <img src="/stream.mjpg" alt="Kamera-Livestream">
       <p id="status">Verbinde …</p>
     </section>
     <section class="card">
       <label for="speed">PWM-Leistung: <strong id="speedLabel">35%</strong></label>
       <input id="speed" type="range" min="15" max="100" value="35">
-      <h2>Fahren</h2>
+      <h2>Joystick</h2>
+      <div class="joystick-wrap">
+        <div class="joystick" id="joystick" aria-label="Fahr-Joystick">
+          <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+      </div>
+      <p class="joystick-label" id="joystickLabel">Bereit</p>
+      <div class="strafe-buttons">
+        <button id="strafeLeft">⇦ Seitlich links</button>
+        <button id="strafeRight">Seitlich rechts ⇨</button>
+      </div>
+      <h2 class="desktop-only">Tastatur</h2>
       <div class="drive-pad" id="drivePad">
         <button data-key="q" data-command="strafe_left"><span class="key">Q</span> Links</button>
         <button data-key="w" data-command="forward"><span class="key">W</span> Vor</button>
@@ -53,9 +80,11 @@
         <button data-key="s" data-command="backward"><span class="key">S</span> Zurück</button>
         <button data-key="d" data-command="turn_right">Drehen <span class="key">D</span></button>
       </div>
-      <p class="pins">Tastatur oder Tasten gedrückt halten. Loslassen stoppt sofort.</p>
-      <h2>Einzelmotor-Test</h2>
-      <div class="motor-grid" id="motors"></div>
+      <p class="pins desktop-only">Tastatur oder Tasten gedrückt halten. Loslassen stoppt sofort.</p>
+      <details>
+        <summary>Einzelmotor-Test</summary>
+        <div class="motor-grid" id="motors"></div>
+      </details>
       <button class="stop" id="stop">NOT-AUS / ALLE STOPPEN</button>
     </section>
   </div>
@@ -64,7 +93,7 @@
       M1: {position:'Hinten links', pins:'Controller 1 / A · EN 18 · IN 23/24 · Richtung korrigiert'},
       M2: {position:'Vorne links', pins:'Controller 1 / B · EN 12 · IN 25/16'},
       M3: {position:'Vorne rechts', pins:'Controller 2 / A · EN 13 · IN 17/27'},
-      M4: {position:'Hinten rechts (vorläufig)', pins:'Controller 2 / B · EN 21 · IN 22/5 · Testverkabelung'}
+      M4: {position:'Hinten rechts', pins:'Controller 2 / B · EN 21 · IN 22/5'}
     };
     const container = document.querySelector('#motors');
     const speed = document.querySelector('#speed');
@@ -77,6 +106,91 @@
     const keyCommands = {q:'strafe_left', w:'forward', e:'strafe_right', a:'turn_left', s:'backward', d:'turn_right'};
     const heldKeys = [];
     let driveTimer = null;
+    const joystick = document.querySelector('#joystick');
+    const joystickKnob = document.querySelector('#joystickKnob');
+    const joystickLabel = document.querySelector('#joystickLabel');
+    const vector = {forward:0, turn:0, strafe:0, pointerId:null};
+    let vectorTimer = null;
+
+    function vectorIsActive() {
+      return Math.abs(vector.forward) > .01 || Math.abs(vector.turn) > .01 || Math.abs(vector.strafe) > .01;
+    }
+    function sendVector() {
+      return post('/api/vector', {...vector, pointerId:undefined, speed:Number(speed.value)/100});
+    }
+    function ensureVectorLoop() {
+      if (!vectorIsActive()) {
+        if (vectorTimer) clearInterval(vectorTimer);
+        vectorTimer = null;
+        stop();
+        return;
+      }
+      if (!vectorTimer) {
+        sendVector();
+        vectorTimer = setInterval(sendVector, 120);
+      }
+    }
+    function resetJoystick() {
+      vector.forward = 0;
+      vector.turn = 0;
+      vector.pointerId = null;
+      joystickKnob.style.transform = 'translate(0,0)';
+      joystickLabel.textContent = vector.strafe ? (vector.strafe < 0 ? 'Seitlich links' : 'Seitlich rechts') : 'Bereit';
+      ensureVectorLoop();
+    }
+    function updateJoystick(event) {
+      const rect = joystick.getBoundingClientRect();
+      const radius = (Math.min(rect.width, rect.height) - joystickKnob.offsetWidth) / 2;
+      let dx = event.clientX - (rect.left + rect.width / 2);
+      let dy = event.clientY - (rect.top + rect.height / 2);
+      const distance = Math.hypot(dx, dy);
+      if (distance > radius) { dx *= radius / distance; dy *= radius / distance; }
+      joystickKnob.style.transform = `translate(${dx}px,${dy}px)`;
+      let turn = dx / radius;
+      let forward = -dy / radius;
+      if (Math.hypot(turn, forward) < .12) { turn = 0; forward = 0; }
+      vector.turn = turn;
+      vector.forward = forward;
+      const vertical = Math.abs(forward) > .2 ? (forward > 0 ? 'Vorwärts' : 'Rückwärts') : '';
+      const horizontal = Math.abs(turn) > .2 ? (turn > 0 ? 'rechts drehen' : 'links drehen') : '';
+      joystickLabel.textContent = [vertical, horizontal].filter(Boolean).join(' + ') || 'Bereit';
+      ensureVectorLoop();
+    }
+    joystick.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      joystick.setPointerCapture(event.pointerId);
+      vector.pointerId = event.pointerId;
+      updateJoystick(event);
+    });
+    joystick.addEventListener('pointermove', event => {
+      if (event.pointerId === vector.pointerId) updateJoystick(event);
+    });
+    ['pointerup','pointercancel','lostpointercapture'].forEach(name =>
+      joystick.addEventListener(name, event => {
+        if (event.pointerId === vector.pointerId) resetJoystick();
+      })
+    );
+    function bindStrafe(button, amount) {
+      const start = event => {
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        button.classList.add('active');
+        vector.strafe = amount;
+        joystickLabel.textContent = amount < 0 ? 'Seitlich links' : 'Seitlich rechts';
+        ensureVectorLoop();
+      };
+      const end = event => {
+        event.preventDefault();
+        button.classList.remove('active');
+        vector.strafe = 0;
+        joystickLabel.textContent = vector.forward || vector.turn ? joystickLabel.textContent : 'Bereit';
+        ensureVectorLoop();
+      };
+      button.addEventListener('pointerdown', start);
+      ['pointerup','pointercancel','lostpointercapture'].forEach(name => button.addEventListener(name, end));
+    }
+    bindStrafe(document.querySelector('#strafeLeft'), -1);
+    bindStrafe(document.querySelector('#strafeRight'), 1);
 
     function sendDrive(command) {
       return post('/api/drive', {command, speed:Number(speed.value)/100});
@@ -151,6 +265,8 @@
       heldKeys.splice(0);
       if (driveTimer) clearInterval(driveTimer);
       driveTimer = null;
+      vector.forward = vector.turn = vector.strafe = 0;
+      resetJoystick();
       stop();
     });
     window.addEventListener('pagehide', () => navigator.sendBeacon('/api/stop', new Blob(['{}'], {type:'application/json'})));

@@ -90,6 +90,28 @@ def drive_command(command, speed):
             deadlines[name] = deadline
 
 
+def drive_vector(forward, turn, strafe, speed):
+    # Positive values mean forward, turn right and strafe right.
+    values = {
+        "M2": forward + turn + strafe,  # front left
+        "M3": forward - turn - strafe,  # front right
+        "M1": forward + turn - strafe,  # rear left
+        "M4": forward - turn + strafe,  # rear right
+    }
+    peak = max(1.0, *(abs(value) for value in values.values()))
+    deadline = time.monotonic() + DEADMAN_SECONDS
+    with motor_lock:
+        for name, value in values.items():
+            value = value / peak * speed
+            if abs(value) < 0.03:
+                motors[name].stop()
+                deadlines[name] = 0.0
+                continue
+            direction = "forward" if value > 0 else "reverse"
+            motors[name].drive(physical_direction(name, direction), abs(value))
+            deadlines[name] = deadline
+
+
 def stop_all():
     with motor_lock:
         for name, motor in motors.items():
@@ -228,6 +250,16 @@ class Handler(BaseHTTPRequestHandler):
                 speed = max(0.1, min(speed, 1.0))
                 drive_command(command, speed)
                 self.send_json(200, {"ok": True, "command": command})
+            except (TypeError, ValueError) as exc:
+                self.send_json(400, {"ok": False, "error": str(exc)})
+        elif self.path == "/api/vector":
+            try:
+                forward = max(-1.0, min(float(data.get("forward", 0)), 1.0))
+                turn = max(-1.0, min(float(data.get("turn", 0)), 1.0))
+                strafe = max(-1.0, min(float(data.get("strafe", 0)), 1.0))
+                speed = max(0.1, min(float(data.get("speed", 0.35)), 1.0))
+                drive_vector(forward, turn, strafe, speed)
+                self.send_json(200, {"ok": True})
             except (TypeError, ValueError) as exc:
                 self.send_json(400, {"ok": False, "error": str(exc)})
         elif self.path == "/api/stop":
