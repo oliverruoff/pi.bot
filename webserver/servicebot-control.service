@@ -1,5 +1,5 @@
 [Unit]
-Description=ServiceBot camera and motor test UI
+Description=Navibot robot agent and mobile cockpit
 After=network-online.target
 Wants=network-online.target
 
@@ -8,9 +8,10 @@ Type=simple
 User=bot
 Group=bot
 SupplementaryGroups=gpio video render
-WorkingDirectory=/home/bot/servicebot-control
+WorkingDirectory=/home/bot/Navibot
+EnvironmentFile=/home/bot/Navibot/.env
 ExecStartPre=/bin/sleep 5
-ExecStart=/usr/bin/python3 /home/bot/servicebot-control/app.py
+ExecStart=/usr/bin/python3 /home/bot/Navibot/webserver/app.py
 Restart=always
 RestartSec=2
 TimeoutStopSec=3
