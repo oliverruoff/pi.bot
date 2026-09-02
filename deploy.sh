@@ -66,8 +66,20 @@ sudo install -m 0644 "$service_tmp" "/etc/systemd/system/$SERVICE_NAME.service"
 sudo systemctl daemon-reload
 sudo systemctl enable "$SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME"
-sleep 10
+health_ok=false
+for _attempt in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:8080/api/status > /tmp/navibot-deploy-status.json 2>/dev/null; then
+    health_ok=true
+    break
+  fi
+  sleep 2
+done
+if [ "$health_ok" != true ]; then
+  sudo journalctl -u "$SERVICE_NAME" --no-pager -n 80
+  fail "Navibot did not become healthy within 60 seconds"
+fi
 sudo systemctl --no-pager --full status "$SERVICE_NAME"
-curl -fsS http://127.0.0.1:8080/api/status
+cat /tmp/navibot-deploy-status.json
+rm -f /tmp/navibot-deploy-status.json
 printf '\n'
 log "Deployment complete"
